@@ -398,7 +398,7 @@ if st.session_state.page == "repair":
     with col_k2: colored_metric("未完成維修件數", f"{未完成維修件數:,}", "#00BFFF")
     with col_k3: colored_metric("維修完成率", f"{維修完成率*100:.2f}%", rate_color(維修完成率))
     with col_k5: colored_metric("五日內自修完成率", f"{五日內內修完成率*100:.2f}%", rate_color(五日內內修完成率))
-    with col_k4: colored_metric("自修率", f"{自修率:.2f}%", rate_color(自修率))
+    #with col_k4: colored_metric("自修率", f"{自修率:.2f}%", rate_color(自修率))
     
     st.markdown("---")
     st.markdown("### 🧾 保養資訊")
