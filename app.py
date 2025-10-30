@@ -443,7 +443,7 @@ if st.session_state.page == "repair":
             x="工程師",
             y=["維修完成率", "保養完成率"],
             markers=True,
-            title="-",
+            title="----",
             labels={"value": "完成率 (%)", "variable": ""},
             hover_data={"value": ':.0%'},
             color_discrete_map={
