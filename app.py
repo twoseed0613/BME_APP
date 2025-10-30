@@ -271,7 +271,7 @@ if st.session_state.page == "main":
         with c2: colored_metric("未完成維修件數", f"{未完成維修件數:,}", "#EE5959")
         c3, c4 = st.columns(2)
         with c3: colored_metric("維修完成率", f"{維修完成率*100:.2f}%", rate_color(維修完成率))
-        #with c4: colored_metric("五日完修率", f"{五日完修率*100:.2f}%", rate_color(五日完修率))
+        with c4: colored_metric("五日完修率", f"{五日完修率*100:.2f}%", rate_color(五日完修率))
     with col2:
         c1, c2 = st.columns(2)
         with c1: colored_metric("保養總件數", f"{保養總件數:,}", "#1E90FF")
