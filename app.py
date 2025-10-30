@@ -421,7 +421,7 @@ if st.session_state.page == "repair":
     with col_k34: colored_metric("租賃未保養件數", f"{租賃未保養件數:,}", "#E3A383")
 
     st.markdown("---")
-    st.markdown("### 🧾 各工程師維修與保養完成率")
+    st.markdown("### 🧾 各工程師維修與保養相關資訊")
     # ===== 圖表展示區 =====
     col1, col2 = st.columns(2)
 
@@ -484,7 +484,7 @@ if st.session_state.page == "repair":
             y="件數",
             color="項目",
             barmode="group",
-            title="各工程師維修與保養總件數",
+            title="-",
             color_discrete_map=color_map
         )
         fig_bar.update_layout(
