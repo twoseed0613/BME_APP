@@ -1,0 +1,3 @@
+([('launcher',
+   '/Users/cloud_chih/Documents/VS Code/dist/launcher',
+   'EXECUTABLE')],)
