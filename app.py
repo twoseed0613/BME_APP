@@ -484,7 +484,7 @@ if st.session_state.page == "repair":
             y="件數",
             color="項目",
             barmode="group",
-            title="-",
+            title="----",
             color_discrete_map=color_map
         )
         fig_bar.update_layout(
