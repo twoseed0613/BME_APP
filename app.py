@@ -148,7 +148,7 @@ def rate_color(rate):
 SHEET_ID = "1-_9tP9j7yDdbcgQHSCycxDzaPCOHYSrCoQ2mZjPLI3I"
 SHEET_GIDS = {
     "各同仁維修保養": "0",
-    #"各同仁維修分析": "484715663",
+    "庫房": "140807767",
     "維修": "221547120",
     "合約清單": "1945804832",
     "合約內容": "1994309175",
@@ -170,7 +170,7 @@ def load_data_from_gsheets():
             return pd.DataFrame()
     return (
         safe_read("各同仁維修保養", SHEET_GIDS["各同仁維修保養"]),
-        #safe_read("各同仁維修分析", SHEET_GIDS["各同仁維修分析"]),
+        safe_read("庫房", SHEET_GIDS["庫房"]),
         safe_read("維修", SHEET_GIDS["維修"]),
         safe_read("合約清單", SHEET_GIDS["合約清單"]),
         safe_read("合約內容", SHEET_GIDS["合約內容"]),
@@ -188,7 +188,7 @@ def set_selected_device(device_name):
 
 # ===== 主頁面 =====
 if st.session_state.page == "main":
-    各同仁維修保養, 維修, 合約清單, 合約內容, 未完工, 未完成保養, 到期合約, 設備清單 = load_data_from_gsheets()
+    各同仁維修保養, 庫房, 維修, 合約清單, 合約內容, 未完工, 未完成保養, 到期合約, 設備清單 = load_data_from_gsheets()
 
     st.markdown("<h1>🏥 醫工室儀表板</h1>", unsafe_allow_html=True)
 
@@ -258,7 +258,7 @@ if st.session_state.page == "main":
                     class_count, x="合約類型", y="台數", text="台數",
                     title="📊 合約類型分佈圖", color="合約類型"
                 )
-                fig_contract.update_traces(textposition="outside")
+                fig_contract.update_traces(textposition="inside")
                 fig_contract.update_layout(title_x=0.5, plot_bgcolor="rgba(0,0,0,0)", showlegend=False)
                 合約總台數 = class_count["台數"].sum()
             else:
@@ -336,7 +336,7 @@ if st.session_state.page == "repair":
             st.session_state.page = "main"
             st.rerun()
     # 變更處 4：呼叫新的函數
-    各同仁維修保養,維修, 合約清單, 合約內容, 未完工, 未完成保養, 到期合約, 設備清單 = load_data_from_gsheets()
+    各同仁維修保養, 庫房, 維修, 合約清單, 合約內容, 未完工, 未完成保養, 到期合約, 設備清單 = load_data_from_gsheets()
 
     st.markdown(f"<h2 style='text-align:center; color:{維修保養資訊顏色};'>🧰 維修保養資訊</h2>", unsafe_allow_html=True)
 
@@ -392,13 +392,18 @@ if st.session_state.page == "repair":
     保固未保養件數 = df_filtered["保養_保固未完成"].sum()
    
     st.markdown("---")
-    st.markdown("### 🧾 維修資訊")
+    #st.markdown("### 🧾 維修資訊")
+    st.markdown(
+    """<h3 style="text-align:center; color:#2E86C1; font-size:24px;">🧾 維修資訊</h3>""",
+    unsafe_allow_html=True
+    )
+    
     col_k1, col_k2, col_k3, col_k4, col_k5 = st.columns(5)
     with col_k1: colored_metric("維修總件數", f"{維修總件數:,}", "#00BFFF")
     with col_k2: colored_metric("未完成維修件數", f"{未完成維修件數:,}", "#00BFFF")
     with col_k3: colored_metric("維修完成率", f"{維修完成率*100:.2f}%", rate_color(維修完成率))
     with col_k5: colored_metric("五日內自修完成率", f"{五日內內修完成率*100:.2f}%", rate_color(五日內內修完成率))
-    #with col_k4: colored_metric("自修率", f"{自修率:.2f}%", rate_color(自修率))
+    with col_k4: colored_metric("自修率", f"{自修率:.2f}%", rate_color(自修率))
     
     st.markdown("---")
     st.markdown("### 🧾 保養資訊")
@@ -421,11 +426,15 @@ if st.session_state.page == "repair":
     with col_k34: colored_metric("租賃未保養件數", f"{租賃未保養件數:,}", "#E3A383")
 
     st.markdown("---")
-    st.markdown("### 🧾 各工程師維修與保養相關資訊")
-    # ===== 圖表展示區 =====
-    col1, col2 = st.columns(2)
-
-    # === 折線圖 ===
+    #st.markdown("### 🧾 各工程師維修與保養相關資訊")
+    st.markdown(
+    """<h3 style="text-align:center; color:#2E86C1; font-size:24px;">🧾 各工程師維修與保養相關資訊</h3>""",
+    unsafe_allow_html=True
+    )
+# ===== 圖表展示區：調整為 3 個欄位，將三個圖表放在同一排 =====
+    col1, col2, col3 = st.columns(3) # 調整為 3 個欄位
+        
+    # --- 1. 完成率折線圖 (放到 col1) ---  <--- 拿掉多餘的縮排
     if not df_filtered.empty:
         # 聚合資料
         df_line = df_filtered.groupby("工程師").agg({
@@ -443,7 +452,7 @@ if st.session_state.page == "repair":
             x="工程師",
             y=["維修完成率", "保養完成率"],
             markers=True,
-            title="-",
+            title="工程師維修與保養完成率", # 加上標題
             labels={"value": "完成率 (%)", "variable": ""},
             hover_data={"value": ':.0%'},
             color_discrete_map={
@@ -451,23 +460,18 @@ if st.session_state.page == "repair":
                 "保養完成率": "#ff7f0e"
             }
         )
+        fig_line.update_layout(title_x=0.5) # 標題置中
         fig_line.update_layout(
-            title_x=0.5,
-            plot_bgcolor="rgba(0,0,0,0)",
-            legend_title_text="",
-            yaxis=dict(
-                title="完成率 (%)",
-                tickformat=".0%",
-                range=[0, 1],
-                dtick=0.2
-            )
+        yaxis=dict(
+        tickformat=".0%"  # 設置刻度的顯示格式為百分比，不帶小數點
         )
+    )
 
         col1.plotly_chart(fig_line, use_container_width=True)
     else:
-        col1.info("查無符合篩選條件的資料")
+        col1.info("查無符合篩選條件的完成率資料")
 
-    # === 長條圖 ===
+    # --- 2. 件數長條圖 (放到 col2) --- <--- 拿掉多餘的縮排
     if not df_filtered.empty:
         df_bar = df_filtered[["工程師", "維修總件數", "保養總件數"]].melt(
             id_vars="工程師", var_name="項目", value_name="件數"
@@ -484,17 +488,62 @@ if st.session_state.page == "repair":
             y="件數",
             color="項目",
             barmode="group",
-            title="-",
+            title="工程師維修與保養總件數", # 加上標題
             color_discrete_map=color_map
         )
-        fig_bar.update_layout(
-            title_x=0.5,
-            plot_bgcolor="rgba(0,0,0,0)",
-            legend_title_text=""
-        )
+        fig_bar.update_layout(title_x=0.5) # 標題置中
 
         col2.plotly_chart(fig_bar, use_container_width=True)
+    else:
+        col2.info("查無符合篩選條件的件數資料")
 
+    # --- 3. 維修件數前10名單位圓餅圖 (放到 col3) --- <--- 拿掉多餘的縮排
+    fig_units = None # 確保 fig_units 被初始化
+
+    if not 維修.empty:
+        try:
+            # 複製維修資料並套用篩選條件
+            df_維修_filtered_for_pie = 維修.copy()
+            
+            # 篩選工程師
+            if 選工程師 != "全部" and "工程師" in df_維修_filtered_for_pie.columns:
+                df_維修_filtered_for_pie = df_維修_filtered_for_pie[df_維修_filtered_for_pie["工程師"] == 選工程師]
+
+            # 篩選年月
+            if 選年月 != "整年度" and "請修單年月" in df_維修_filtered_for_pie.columns:
+                try:
+                    df_維修_filtered_for_pie = df_維修_filtered_for_pie[
+                        df_維修_filtered_for_pie["請修單年月"].astype(str) == 選年月
+                    ]
+                except:
+                    pass # 欄位格式不正確時，跳過篩選
+            
+            if ("成本中心名稱" in df_維修_filtered_for_pie.columns and 
+                not df_維修_filtered_for_pie.empty):
+                
+                # 計算前10名單位
+                top_units = (
+                    df_維修_filtered_for_pie["成本中心名稱"]
+                    .value_counts()
+                    .head(10)
+                    .rename_axis("成本中心名稱")
+                    .reset_index(name="件數")
+                )
+                
+                # 建立圓餅圖
+                fig_units = px.pie(top_units, names="成本中心名稱", values="件數",
+                                title="維修件數前10名單位", hole=0.4)
+                fig_units.update_layout(title_x=0.5, plot_bgcolor="rgba(0,0,0,0)")
+                
+                col3.plotly_chart(fig_units, use_container_width=True) # 放到 col3
+            else:
+                col3.info("查無符合篩選條件的維修件數單位分佈資料")
+                
+        except Exception as e:
+            col3.error(f"❌ 圓餅圖產生錯誤：{e}")
+    st.markdown("---")
+
+    #st.markdown("### 🧾 維修故障原因分佈")
     # === 故障原因長條圖（可選擇顯示 Top N）===
     if not 維修.empty:
         df_維修_filtered = 維修.copy()
@@ -533,6 +582,15 @@ if st.session_state.page == "repair":
                 top_reasons = counts.reset_index()
                 top_reasons.columns = ["故障原因", "件數"]
 
+                st.markdown(
+                    f"""
+                    <h3 style="text-align:center; color:#2E86C1; font-size:24px;">
+                         🧾 故障原因分佈（{'Top ' + str(選TopN) if 選TopN != '全部' else '全部'}）
+                    </h3>
+                    """,
+                    unsafe_allow_html=True
+                )
+
                 # 依件數排序（由大到小）
                 top_reasons = top_reasons.sort_values(by="件數", ascending=False)
 
@@ -541,16 +599,17 @@ if st.session_state.page == "repair":
                     top_reasons,
                     x="故障原因",
                     y="件數",
-                    title=f"故障原因分佈（Top {選TopN}）" if 選TopN != "全部" else "故障原因分佈（全部）",
+                    #title=f"故障原因分佈（Top {選TopN}）" if 選TopN != "全部" else "故障原因分佈（全部）",
                     text="件數",
                     color="故障原因",
                     color_discrete_sequence=px.colors.qualitative.Light24  # 多色亮色系
                 )
+                fig_bar.update_layout(title_text="")  # 保證沒有 title，不會出現 undefined
 
                 # 美化顯示
                 fig_bar.update_traces(
                     texttemplate='%{y}件',
-                    textposition='outside'
+                    textposition='inside'
                 )
                 fig_bar.update_layout(
                     title_x=0.5,
@@ -611,7 +670,7 @@ if st.session_state.page == "contract":    # 🔹 左上角返回儀表板按鈕
             st.rerun()
 
     # 重新載入資料
-    各同仁維修保養, 維修, 合約清單, 合約內容, 未完工, 未完成保養, 到期合約, 設備清單 = load_data_from_gsheets()
+    各同仁維修保養, 庫房, 維修, 合約清單, 合約內容, 未完工, 未完成保養, 到期合約, 設備清單 = load_data_from_gsheets()
 
     st.markdown("<h2 style='text-align:center; color:#6EC6FF;'>📘 合約資訊</h2>", unsafe_allow_html=True)
 
@@ -761,7 +820,7 @@ if st.session_state.page == "equipment":
             st.rerun()
 
     # 🔹 讀取資料
-    各同仁維修保養, 維修, 合約清單, 合約內容, 未完工, 未完成保養, 到期合約, 設備清單 = load_data_from_gsheets()
+    各同仁維修保養, 庫房, 維修, 合約清單, 合約內容, 未完工, 未完成保養, 到期合約, 設備清單 = load_data_from_gsheets()
 
     st.markdown("<h2 style='text-align:center; color:#6EC6FF;'>⚙️ 設備資訊</h2>", unsafe_allow_html=True)
 
@@ -905,7 +964,8 @@ if st.session_state.page == "equipment":
                             values="數量",
                             title="廠牌分布",
                             hole=0.4,
-                            color_discrete_sequence=color_sequence
+                            #color_discrete_sequence=color_sequence
+                            color_discrete_sequence=px.colors.qualitative.Light24 
                         )
                         fig1.update_layout(**pie_template)
                         st.plotly_chart(fig1, use_container_width=True)
@@ -922,7 +982,8 @@ if st.session_state.page == "equipment":
                             values="數量",
                             title="型號分布",
                             hole=0.4,
-                            color_discrete_sequence=color_sequence
+                            #color_discrete_sequence=color_sequence
+                            color_discrete_sequence=px.colors.qualitative.Light24
                         )
                         fig2.update_layout(**pie_template)
                         st.plotly_chart(fig2, use_container_width=True)
@@ -979,7 +1040,7 @@ if st.session_state.page == "equipment":
                                 hover_data={"比例 (%)": True, "數量": True},
                             )
                             fig3.update_traces(
-                                textposition="outside",
+                                textposition="inside",
                                 marker_line_color="#FFFFFF",
                                 marker_line_width=1.2,
                                 hovertemplate="使用年數區間: %{x}<br>數量: %{y} 台<br>比例: %{customdata[0]}%",
@@ -1022,18 +1083,206 @@ if st.session_state.page == "equipment":
 
 # ===== 第五頁 庫房管理 =====
 if st.session_state.page == "Parts":
-
-    # 🔹 返回按鈕
+    #  左上角返回儀表板按鈕
     col_top_left, col_top_right = st.columns([1, 6])
     with col_top_left:
-        # 重置 selected_device，避免返回儀表板再回來時還停留在舊的狀態
-        if st.button("⬅️ 返回儀表板", key="return_to_main_eq"):
+        # 新增 key 以避免與其他頁面按鈕衝突
+        if st.button(" 返回儀表板", key="return_to_main_parts"): 
             st.session_state.page = "main"
-            if "selected_device" in st.session_state:
-                 del st.session_state.selected_device
             st.rerun()
 
-    # 🔹 讀取資料
-    各同仁維修保養, 維修, 合約清單, 合約內容, 未完工, 未完成保養, 到期合約, 設備清單 = load_data_from_gsheets()
+    st.markdown("## ⚙️ 醫工零件庫房管理 Dashboard") # 加上 icon
 
-    st.markdown("<h2 style='text-align:center; color:#6EC6FF;'>📘 庫房管理</h2>", unsafe_allow_html=True)
+    # 修正資料抓取邏輯：使用 load_data_from_gsheets()
+    try:
+        # 載入所有資料並取得第二個回傳值 (庫房)
+        (
+            各同仁維修保養, 
+            df_parts,  
+            維修, 
+            合約清單, 
+            合約內容, 
+            未完工, 
+            未完成保養, 
+            到期合約, 
+            設備清單
+        ) = load_data_from_gsheets()
+
+    except Exception as e:
+        # 資料抓取錯誤處理，並確保 df_parts 仍是一個空的 DataFrame
+        st.error(f"Google Sheet 讀取錯誤：{e}")
+        df_parts = pd.DataFrame() 
+
+    if df_parts.empty:
+        st.info("目前尚無庫房資料。")
+    else:
+        # === 數據清理 ===
+        df_parts.columns = df_parts.columns.str.strip()  # 避免欄位名有空白
+        for col in ["總數量", "總金額"]:
+            if col in df_parts.columns:
+                # 確保欄位是數字型態
+                df_parts[col] = pd.to_numeric(df_parts[col], errors="coerce").fillna(0)
+
+        # 確保「年月」存在且為字串
+        if "年月" in df_parts.columns:
+             df_parts["年月"] = df_parts["年月"].astype(str)
+        
+        # === 月份單選篩選功能 (預設選擇最新月) ===
+        df_filtered = df_parts.copy()
+        
+        if "年月" in df_parts.columns:
+            # 取得所有月份選項，並倒序排列 (最新月在前面)
+            month_options = sorted(df_parts["年月"].unique().tolist(), reverse=True)
+            
+            # 加入「或選整年度」選項
+            select_options = ["或選整年度"] + month_options
+
+            # 判斷預設索引：如果 month_options 不為空，則預設選最新月 (索引 1)，否則選「整年度」(索引 0)
+            default_index = 1 if len(month_options) > 0 else 0 
+
+            # 使用 st.selectbox (單選)，放在主畫面
+            selected_month = st.selectbox(
+                "查詢年月 (或選整年度)",
+                options=select_options,
+                index=default_index, # ✨ 設定預設索引為最新月
+                key="parts_month_select"
+            )
+
+            # 處理月份篩選邏輯
+            if selected_month != "或選整年度":
+                # 根據選定的月份進行過濾
+                df_filtered = df_parts[df_parts["年月"] == selected_month].copy()
+
+        # 檢查過濾後的資料是否為空
+        if df_filtered.empty:
+            st.info("目前無符合篩選條件的庫房資料。")
+            st.stop()
+            
+        # === KPI 區塊 (使用 df_filtered) ===
+        total_items = df_filtered["物料名稱"].nunique()
+        total_qty = df_filtered["總數量"].sum()
+        total_amount = df_filtered["總金額"].sum()
+        # 確保總數量不為零才計算平均單價
+        avg_price = total_amount / total_qty if total_qty > 0 else 0 
+
+        col1, col2, col3 = st.columns(3)
+        col1.metric("📦 總品項數", f"{total_items:,}")
+        col2.metric("🔧 總出庫量", f"{total_qty:,}")
+        col3.metric("💰 總金額", f"{total_amount:,.0f}")
+        #col4.metric("💲 平均單價", f"{avg_price:,.0f}")
+
+        st.divider()
+
+        # === 使用者可選 Top N ===
+        # 放在主區塊，讓 Top N 選項跟著圖表變化
+        selected_top_n = st.selectbox(
+        "🛠️ 顯示 Top N 品項數量", 
+        [5, 10, 15], 
+        index=0, # 預設選 5
+        help="選擇要在下方的『高金額品項』和『高使用量品項』圖表中顯示的前 N 名物料。"
+        )
+        
+        # 處理 Top N 的數值
+        top_n = int(selected_top_n)
+        
+        # 🚀 彙總資料：先彙總 df_filtered，再從中選取 Top N
+        df_summary = df_filtered.groupby("物料名稱", as_index=False)[["總數量", "總金額"]].sum()
+
+        
+        # ===== 圖表展示區 =====
+        st.markdown(
+            f"""
+            <h3 style="text-align:center; color:#2E86C1; font-size:24px;">
+                    🧾 高金額品項及高使用量品項（{'Top ' + str(top_n)}）
+            </h3>
+            """,
+            unsafe_allow_html=True
+        )
+        col1, col2 = st.columns(2)
+
+        # === 高金額品項 TOP N (使用 df_summary) ===
+        #st.subheader(f"💸 高金額品項 TOP {selected_top_n}")
+        top_amount = (
+            df_summary.sort_values("總金額", ascending=False)
+            .head(top_n)
+            .reset_index(drop=True)
+        )
+        fig_amount = px.bar(
+            top_amount,
+            x="物料名稱",
+            y="總金額",
+            text="總金額",
+            title=f"高金額品項前 {selected_top_n} 名",
+            color="物料名稱",
+            color_discrete_sequence=px.colors.qualitative.Light24
+        )
+        fig_amount.update_traces(texttemplate="%{text:,.0f}", textposition="inside")
+        fig_amount.update_layout(title_x=0.5, xaxis_tickangle=-45, margin=dict(t=80)) 
+        #fig_amount.update_layout(title_text="")  # 保證沒有 title，不會出現 undefined
+        col1.plotly_chart(fig_amount, use_container_width=True)
+
+        # === 高使用量品項 TOP N (使用 df_summary) ===
+        #st.subheader(f"📊 高使用量品項 TOP {selected_top_n}")
+
+        top_qty = (
+            df_summary.sort_values("總數量", ascending=False)
+            .head(top_n)
+            .reset_index(drop=True)
+        )
+
+        fig_qty = px.bar(
+            top_qty,
+            x="物料名稱",
+            y="總數量",
+            text="總數量",
+            title=f"高使用量品項前 {selected_top_n} 名",
+            color="物料名稱",
+        )
+        fig_qty.update_traces(texttemplate="%{text:,.0f}", textposition="inside")
+        fig_qty.update_layout(title_x=0.5, xaxis_tickangle=-45, margin=dict(t=80)) 
+        #fig_qty.update_layout(title_text="")  # 保證沒有 title，不會出現 undefined
+        col2.plotly_chart(fig_qty, use_container_width=True)
+
+        # === 月份出庫趨勢（如果有「年月」欄位） (使用 df_parts 確保趨勢完整) ===
+        if "年月" in df_parts.columns and not df_parts.empty:
+            st.subheader("📆 月份出庫金額趨勢")
+            
+            # 使用 df_parts 進行月度彙總
+            month_summary = df_parts.groupby("年月", as_index=False)["總金額"].sum().sort_values("年月")
+
+            fig_month = px.line(
+                month_summary,
+                x="年月",
+                y="總金額",
+                markers=True,
+                title="每月出庫金額變化趨勢 (顯示所有月份)",
+            )
+            
+            # ✨ 關鍵修正：加入 text 和 textposition 參數
+            fig_month.update_traces(
+                mode="lines+markers+text",        # ✨ 模式改為 lines+markers+text
+                line_shape="linear",
+                text=month_summary["總金額"].apply(lambda x: f"{x:,.0f}"), # ✨ 設定要顯示的文字標籤（格式化金額）
+                textposition="top center"        # ✨ 標籤放在數據點上方中央
+            )
+            
+            fig_month.update_layout(
+                title_x=0.5,
+                yaxis_range=[0, month_summary["總金額"].max() * 1.1] # ✨ 新增：設置Y軸範圍從0開始
+            )
+
+            # 確保 X 軸排序和格式正確
+            category_list = month_summary['年月'].tolist()
+            fig_month.update_xaxes(
+                type='category',             
+                categoryorder='array',      
+                categoryarray=category_list, 
+                tickformat='',               
+                showtickprefix='none',       
+                showticksuffix='none'        
+            )
+            
+            st.plotly_chart(fig_month, use_container_width=True)
+        # === 全部零件明細表 (使用 df_filtered) ===
+        st.subheader("🧾 零件明細清單")
+        st.dataframe(df_filtered, use_container_width=True)
