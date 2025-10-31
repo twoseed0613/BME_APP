@@ -432,7 +432,7 @@ if st.session_state.page == "repair":
     unsafe_allow_html=True
     )
 # ===== 圖表展示區：調整為 3 個欄位，將三個圖表放在同一排 =====
-    col1, col2, col3 = st.columns(3) # 調整為 3 個欄位
+    col1, col2= st.columns(2) # 調整為 3 個欄位
         
     # --- 1. 完成率折線圖 (放到 col1) ---  <--- 拿掉多餘的縮排
     if not df_filtered.empty:
@@ -497,7 +497,7 @@ if st.session_state.page == "repair":
     else:
         col2.info("查無符合篩選條件的件數資料")
 
-    # --- 3. 維修件數前10名單位圓餅圖 (放到 col3) --- <--- 拿掉多餘的縮排
+    # --- 3. 維修件數前10名單位長條圖---
     fig_units = None # 確保 fig_units 被初始化
 
     if not 維修.empty:
@@ -522,25 +522,46 @@ if st.session_state.page == "repair":
                 not df_維修_filtered_for_pie.empty):
                 
                 # 計算前10名單位
+                # 為了讓長條圖由大到小排序，這裡先排序
                 top_units = (
                     df_維修_filtered_for_pie["成本中心名稱"]
                     .value_counts()
                     .head(10)
                     .rename_axis("成本中心名稱")
                     .reset_index(name="件數")
+                    .sort_values(by="件數", ascending=False) # 確保由大到小排序
                 )
                 
-                # 建立圓餅圖
-                fig_units = px.pie(top_units, names="成本中心名稱", values="件數",
-                                title="維修件數前10名單位", hole=0.4)
-                fig_units.update_layout(title_x=0.5, plot_bgcolor="rgba(0,0,0,0)")
+                # 建立長條圖 (px.bar)
+                fig_units = px.bar(
+                    top_units, 
+                    x="成本中心名稱", # X 軸是單位名稱
+                    y="件數",           # Y 軸是件數
+                    title="維修件數前10名單位",
+                    text="件數",          # 在長條上顯示件數
+                    color="件數",         # 依件數上色
+                    #color_continuous_scale=px.colors.sequential.Teal # 使用漸變色
+                    color_continuous_scale=px.colors.qualitative.Light24  # 多色亮色系
+                )
                 
-                col3.plotly_chart(fig_units, use_container_width=True) # 放到 col3
+                # 美化顯示
+                fig_units.update_layout(
+                    title_x=0.5, 
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    xaxis_title="成本中心名稱",
+                    yaxis_title="件數"
+                )
+                fig_units.update_traces(
+                    texttemplate='%{text}件', 
+                    textposition='inside' # 數字顯示在長條外面
+                )
+                fig_units.update_coloraxes(showscale=False) # 隱藏顏色軸
+                st.plotly_chart(fig_units, use_container_width=True) 
             else:
-                col3.info("查無符合篩選條件的維修件數單位分佈資料")
+                st.info("查無符合篩選條件的維修件數單位分佈資料") # 注意：這裡也換回 col3.info
                 
         except Exception as e:
-            col3.error(f"❌ 圓餅圖產生錯誤：{e}")
+            st.error(f"❌ 長條圖產生錯誤：{e}") # 注意：這裡也換回 col3.error
     st.markdown("---")
 
     #st.markdown("### 🧾 維修故障原因分佈")
