@@ -1207,7 +1207,17 @@ if st.session_state.page == "Parts":
         top_n = int(selected_top_n)
         
         # 🚀 彙總資料：先彙總 df_filtered，再從中選取 Top N
-        df_summary = df_filtered.groupby("物料名稱", as_index=False)[["總數量", "總金額"]].sum()
+        #df_summary = df_filtered.groupby("物料名稱", as_index=False)[["總數量", "總金額"]].sum()
+        if "物料代號" in df_filtered.columns:
+            df_summary = df_filtered.groupby("物料名稱").agg(
+                總數量=('總數量', 'sum'),
+                總金額=('總金額', 'sum'),
+                # 保留物料代號：因為同一個物料名稱應該對應同一個代號，所以取第一個 (first)
+                物料代號=('物料代號', 'first') 
+            ).reset_index()
+        else:
+            # 如果資料沒有物料代號，則退回到原來的分組
+            df_summary = df_filtered.groupby("物料名稱", as_index=False)[["總數量", "總金額"]].sum()
 
         
         # ===== 圖表展示區 =====
@@ -1219,7 +1229,7 @@ if st.session_state.page == "Parts":
             """,
             unsafe_allow_html=True
         )
-        col1, col2 = st.columns(2)
+        #col1, col2 = st.columns(2)
 
         # === 高金額品項 TOP N (使用 df_summary) ===
         #st.subheader(f"💸 高金額品項 TOP {selected_top_n}")
@@ -1228,9 +1238,21 @@ if st.session_state.page == "Parts":
             .head(top_n)
             .reset_index(drop=True)
         )
+        
+        # --- 組合 物料代號 和 物料名稱 作為 X 軸 ---
+        x_column = "物料名稱"  # 預設使用物料名稱
+        if "物料代號" in top_amount.columns:
+            top_amount['物料代號_名稱'] = (
+                top_amount['物料代號'].astype(str) + 
+                ' - ' + 
+                top_amount['物料名稱'].astype(str)
+            )
+            x_column = '物料代號_名稱'
+        # ------------------------------------
+        
         fig_amount = px.bar(
             top_amount,
-            x="物料名稱",
+            x=x_column, # 使用組合後的欄位
             y="總金額",
             text="總金額",
             title=f"高金額品項前 {selected_top_n} 名",
@@ -1238,9 +1260,10 @@ if st.session_state.page == "Parts":
             color_discrete_sequence=px.colors.qualitative.Light24
         )
         fig_amount.update_traces(texttemplate="%{text:,.0f}", textposition="inside")
-        fig_amount.update_layout(title_x=0.5, xaxis_tickangle=-45, margin=dict(t=80)) 
+        fig_amount.update_layout(title_x=0.5, xaxis_tickangle=-45, margin=dict(t=80), 
+                                 xaxis_title="物料代號 - 物料名稱") # 可以強制加上 X 軸標題
         #fig_amount.update_layout(title_text="")  # 保證沒有 title，不會出現 undefined
-        col1.plotly_chart(fig_amount, use_container_width=True)
+        st.plotly_chart(fig_amount, use_container_width=True)
 
         # === 高使用量品項 TOP N (使用 df_summary) ===
         #st.subheader(f"📊 高使用量品項 TOP {selected_top_n}")
@@ -1250,19 +1273,33 @@ if st.session_state.page == "Parts":
             .head(top_n)
             .reset_index(drop=True)
         )
+        
+        # --- 組合 物料代號 和 物料名稱 作為 X 軸 (新增部分) ---
+        x_qty_column = "物料名稱"  # 預設使用物料名稱
+        if "物料代號" in top_qty.columns:
+            # 創建新的組合欄位
+            top_qty['物料代號_名稱'] = (
+                top_qty['物料代號'].astype(str) + 
+                ' - ' + 
+                top_qty['物料名稱'].astype(str)
+            )
+            x_qty_column = '物料代號_名稱'
+        # ----------------------------------------------------
 
         fig_qty = px.bar(
             top_qty,
-            x="物料名稱",
+            x=x_qty_column, # 使用組合後的欄位作為 X 軸
             y="總數量",
             text="總數量",
             title=f"高使用量品項前 {selected_top_n} 名",
             color="物料名稱",
         )
         fig_qty.update_traces(texttemplate="%{text:,.0f}", textposition="inside")
-        fig_qty.update_layout(title_x=0.5, xaxis_tickangle=-45, margin=dict(t=80)) 
+        # 加上 X 軸標題並調整角度
+        fig_qty.update_layout(title_x=0.5, xaxis_tickangle=-45, margin=dict(t=80), 
+                              xaxis_title="物料代號 - 物料名稱") 
         #fig_qty.update_layout(title_text="")  # 保證沒有 title，不會出現 undefined
-        col2.plotly_chart(fig_qty, use_container_width=True)
+        st.plotly_chart(fig_qty, use_container_width=True)
 
         # === 月份出庫趨勢（如果有「年月」欄位） (使用 df_parts 確保趨勢完整) ===
         if "年月" in df_parts.columns and not df_parts.empty:
